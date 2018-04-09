@@ -86,7 +86,6 @@ fileprivate func angleFor(index:Int) -> CGFloat {
         }
     }
     func removeFragmentAnimations() {
-        
         for i in 0...Int(self.fragments) {
             guard let fragment = self.viewWithTag(i + 1) as? UIImageView else {
                 continue
@@ -134,6 +133,8 @@ fileprivate func angleFor(index:Int) -> CGFloat {
             fadeAnimation.duration = rotationDuration
             fadeAnimation.beginTime = now + timePerFramegment*Double(i)
             fadeAnimation.repeatCount = Float.infinity
+            // without isRemovedOnCompletion = false the animation will be removed when the app goes to the background
+            fadeAnimation.isRemovedOnCompletion = false
             fragment.layer.add(fadeAnimation, forKey: fadeAnimation.keyPath)
             
             let rotationAnimation = CABasicAnimation(keyPath: "transform.rotation")
@@ -143,6 +144,8 @@ fileprivate func angleFor(index:Int) -> CGFloat {
             rotationAnimation.duration = rotationDuration * 1.8
             rotationAnimation.timingFunction = CAMediaTimingFunction(name: kCAMediaTimingFunctionEaseInEaseOut)
             rotationAnimation.repeatCount = Float.infinity
+            // without isRemovedOnCompletion = false the animation will be removed when the app goes to the background
+            rotationAnimation.isRemovedOnCompletion = false
             fragment.layer.add(rotationAnimation, forKey: rotationAnimation.keyPath)
             
         }

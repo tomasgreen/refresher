@@ -10,10 +10,10 @@ import UIKit
 import Refresher
 
 class People : Decodable {
-    let name:String
-    let email:String
-    let phone:String
-    let avatar:URL
+    var name:String
+    var email:String
+    var phone:String
+    var avatar:URL
 }
 
 class PersonTableViewCell: UITableViewCell {
@@ -28,39 +28,25 @@ extension UINavigationController {
 }
 class ViewController: UITableViewController {
     var refresh:Refresher?
+    var searchController = UISearchController(searchResultsController: nil)
     var items = [People]()
     override var preferredStatusBarStyle: UIStatusBarStyle {
         return .lightContent
     }
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.refresh = Refresher(scrollView: self.tableView,viewController: self, style: .scrollView)
-        refresh?.didPullDown = {
-            guard let url = URL(string:"http://192.168.1.103:8080") else {
-                return
-            }
-            let task = URLSession.shared.dataTask(with: url, completionHandler: { (data, rsponse, error) in
-                guard let data = data else {
-                    DispatchQueue.main.async {
-                        self.items = []
-                        self.refresh?.endRefreshing()
-                        self.tableView.reloadData()
-                    }
-                    return
-                }
-                do {
-                    let result = try JSONDecoder().decode([People].self, from: data)
-                    DispatchQueue.main.async {
-                        self.items = result
-                        self.refresh?.endRefreshing()
-                        self.tableView.reloadData()
-                    }
-                } catch {
-                    print(error)
-                }
-            })
-            task.resume()
-        }
+        self.navigationItem.searchController = searchController
+        self.navigationItem.searchController?.searchBar.searchBarStyle = .minimal
+        self.navigationItem.searchController?.searchBar.tintColor = UIColor.white
+        self.refresh = Refresher(scrollView: self.tableView, didPullDown: {
+            self.download()
+        })
+        self.refresh?.usingVisualEffect = false
+        /*self.refresh?.color = self.navigationController?.navigationBar.barTintColor ?? UIColor.blue
+        
+        self.refresh = Refresher(scrollView: tableView, viewController: self, style: .navigationBar, didPullDown: {
+            self.download()
+        })*/
     }
     
     override func numberOfSections(in tableView: UITableView) -> Int {
@@ -75,8 +61,45 @@ class ViewController: UITableViewController {
         cell.infoLabel?.text = items[indexPath.row].email
         return cell
     }
+    func download() {
+        Timer.scheduledTimer(withTimeInterval: 2, repeats: false) { (timer) in
+            self.refresh?.endRefreshing()
+        }
+        /*return
+        guard let url = URL(string:"http://192.168.1.103:8080") else {
+            return
+        }
+        let task = URLSession.shared.dataTask(with: url, completionHandler: { (data, rsponse, error) in
+            guard let data = data else {
+                DispatchQueue.main.async {
+                    self.items = []
+                    self.refresh?.endRefreshing()
+                    self.tableView.reloadData()
+                }
+                return
+            }
+            do {
+                let result = try JSONDecoder().decode([People].self, from: data)
+                if let p = result.first {
+                    
+                }
+                DispatchQueue.main.async {
+                    self.items = result
+                    self.refresh?.endRefreshing()
+                    self.tableView.reloadData()
+                }
+            } catch {
+                print(error)
+            }
+        })
+        task.resume()*/
+    }
     func download(url:URL, indexPath:IndexPath) {
         
+    }
+    @IBAction func refresh2(sender:Any?) {
+        download()
+        //self.refresh?.startRefreshing(force: true)
     }
     @IBAction func refresh(sender:Any?) {
         self.refresh?.startRefreshing(force: true)

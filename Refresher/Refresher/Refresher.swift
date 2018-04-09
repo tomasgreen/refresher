@@ -8,6 +8,9 @@
 
 import UIKit
 
+
+@available(iOS 10.0, *) fileprivate var tapticFeedback = UISelectionFeedbackGenerator()
+
 public class Refresher: UIView {
     public enum Style {
         case scrollView
@@ -17,7 +20,6 @@ public class Refresher: UIView {
     private var viewController:UIViewController?
     private var titleView:UIView?
     private var activityIndicator:ActivityIndicator?
-    private var tapticFeedback = UISelectionFeedbackGenerator()
     private var capReached = false
     
     private(set) var isRefreshing = false
@@ -31,8 +33,12 @@ public class Refresher: UIView {
     public var refreshLabel:UILabel?
     public var pullToRefreshText = "Pull to refresh"
     public var releaseToRefreshText = "Release to refresh"
-    public var activityIndicatorActiveBackgroundColor = UIColor.white
-
+    public var activityIndicatorActiveBackgroundColor:UIColor = .clear
+    public var usingVisualEffect:Bool = false {
+        didSet {
+            self.activityIndicatorActiveBackgroundColor = usingVisualEffect ? .clear : self.tintColor
+        }
+    }
     public var color:UIColor {
         get {
             return self.tintColor
@@ -40,41 +46,64 @@ public class Refresher: UIView {
             self.tintColor = newValue
             self.refreshLabel?.textColor = newValue
             self.activityIndicator?.tintColor = newValue
+            self.activityIndicatorActiveBackgroundColor = usingVisualEffect ? .clear : newValue
         }
     }
     public var navigationItemHeight:CGFloat {
-        return indicatorOffset.y + (viewController?.navigationController?.navigationBar.frame.size.height ?? indicatorSize + indicatorOffset.y)
+        if #available(iOS 11.0, *) {
+            return (viewController?.navigationItem.searchController?.searchBar.frame.size.height ?? 0) + indicatorOffset.y + (viewController?.navigationController?.navigationBar.frame.size.height ?? indicatorSize + indicatorOffset.y)
+        } else {
+            return indicatorOffset.y + (viewController?.navigationController?.navigationBar.frame.size.height ?? indicatorSize + indicatorOffset.y)
+        }
     }
-    public convenience init(scrollView:UIScrollView, viewController:UIViewController? = nil,style:Style = .scrollView) {
+    public convenience init(scrollView:UIScrollView, didPullDown:(() -> Void)? = nil) {
         self.init(frame: CGRect())
+        self.didPullDown = didPullDown
+        self.scrollView = scrollView
+        activityIndicatorActiveBackgroundColor = .clear
+        setup()
+    }
+    public convenience init(scrollView:UIScrollView, viewController:UIViewController? = nil,style:Style = .scrollView, didPullDown:(() -> Void)? = nil) {
+        self.init(frame: CGRect())
+        self.didPullDown = didPullDown
         self.style = style
+        
+        if let color = viewController?.navigationController?.navigationBar.barTintColor {
+            activityIndicatorActiveBackgroundColor = color
+        }
+        self.scrollView = scrollView
+        self.viewController = viewController
+        setup()
+    }
+    private func setup() {
+        guard let scrollView = scrollView else {
+            return
+        }
+        
         self.frame = CGRect(x: 0, y: self.height * -1, width: scrollView.frame.size.width, height: self.height)
         let refreshLabel = UILabel(frame: CGRect(x: 0, y: 40, width: bounds.width, height: bounds.height - 40))
         refreshLabel.textAlignment = .center
         refreshLabel.text = pullToRefreshText
         refreshLabel.font = UIFont.systemFont(ofSize: 13)
-
-        let indicator = LineActivityIndicator(frame: CGRect(x: scrollView.frame.size.width - indicatorSize - indicatorOffset.x, y: self.indicatorOffset.y, width: indicatorSize, height: indicatorSize))
         
+        let indicator = LineActivityIndicator(frame: CGRect(x: scrollView.frame.size.width - indicatorSize - indicatorOffset.x, y: self.indicatorOffset.y, width: indicatorSize, height: indicatorSize))
+        indicator.layer.shadowColor = UIColor.black.cgColor
+        indicator.layer.shadowOpacity = 0.2
+        indicator.layer.shadowOffset = CGSize()
+        indicator.layer.shadowRadius = 0
         indicator.layer.cornerRadius = indicator.frame.size.height/2
-        if let color = viewController?.navigationController?.navigationBar.barTintColor {
-            activityIndicatorActiveBackgroundColor = color
-        }
         self.backgroundColor = UIColor.clear
         
         self.activityIndicator = indicator
         self.refreshLabel = refreshLabel
-        self.scrollView = scrollView
-        self.viewController = viewController
-        
+        refreshLabel.isHidden = true
         
         scrollView.addSubview(indicator)
         scrollView.addSubview(self)
         scrollView.sendSubview(toBack: self)
         self.addSubview(refreshLabel)
-        
+
         self.color = scrollView.tintColor
-        
         scrollView.addObserver(self, forKeyPath: "contentOffset", options: .new, context: nil)
         scrollView.addObserver(self, forKeyPath: "frame", options: .new, context: nil)
     }
@@ -86,7 +115,8 @@ public class Refresher: UIView {
             self.frame.size.width = rect.width
             refreshLabel?.frame.size.width = rect.width
             if self.isRefreshing {
-                activityIndicator?.frame.origin.x = rect.size.width - indicatorSize - indicatorOffset.x
+                let x = rect.size.width - indicatorSize - indicatorOffset.x
+                activityIndicator?.frame.origin.x = x - rightOffset
             } else if let indicator = activityIndicator {
                 indicator.frame.origin.x = (self.frame.width - indicator.frame.width)/2
             }
@@ -96,12 +126,24 @@ public class Refresher: UIView {
         scrollView?.removeObserver(self, forKeyPath: "contentOffset")
         scrollView?.removeObserver(self, forKeyPath: "frame")
     }
+    private var topOffset:CGFloat {
+        if #available(iOS 11.0, *) {
+            return viewController?.presentingViewController?.view.safeAreaInsets.top ?? 0
+        }
+        return 0
+    }
+    private var rightOffset:CGFloat {
+        if #available(iOS 11.0, *) {
+            return safeAreaInsets.right
+        }
+        return 0
+    }
     private func drag(offset:CGPoint) {
         var scrollViewOffset = (offset.y * -1)
         if let margins = scrollView?.layoutMargins {
             scrollViewOffset -= margins.top
         }
-        if isRefreshing == false{
+        if isRefreshing == false {
             refreshLabel?.alpha =  scrollViewOffset/capHeight
         }
         let y = scrollViewOffset - self.frame.height
@@ -118,7 +160,7 @@ public class Refresher: UIView {
         activityIndicator?.frame.origin.y = self.indicatorOffset.y + scrollViewOffset * -1
     
         if scrollViewOffset > capHeight {
-            if isRefreshing == false && capReached == false {
+            if #available(iOS 10, *), isRefreshing == false && capReached == false {
                 tapticFeedback.selectionChanged()
             }
             capReached = true
@@ -142,19 +184,22 @@ public class Refresher: UIView {
         guard let scrollView = scrollView else {
             return
         }
-        guard let indicator = activityIndicator  else {
+        guard let indicator = activityIndicator else {
             return
         }
         if style == .scrollView {
             if force {
                 indicator.frame.origin.x = scrollView.frame.size.width
             }
-            indicator.effectView?.isHidden = true
+            if usingVisualEffect {
+                indicator.effectView?.isHidden = false
+            }
             indicator.backgroundColor = activityIndicatorActiveBackgroundColor
             indicator.color = UIColor.white
             UIView.animate(withDuration: 0.3, delay: 0.2, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.2, options: UIViewAnimationOptions(), animations: {
                 self.refreshLabel?.alpha = 0
-                indicator.frame.origin.x = scrollView.frame.size.width - self.indicatorSize - self.indicatorOffset.x
+                indicator.layer.shadowRadius = 5
+                indicator.frame.origin.x = scrollView.frame.size.width - self.indicatorSize - self.indicatorOffset.x - self.rightOffset
             }) { (done) in
                 self.didPullDown?()
             }
@@ -186,11 +231,14 @@ public class Refresher: UIView {
             UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.2, options: UIViewAnimationOptions(), animations: {
                 indicator.frame.origin.x = scrollView.frame.size.width
             }) { (done) in
-                //indicator.effectView?.isHidden = true
                 indicator.backgroundColor = UIColor.clear
                 indicator.stopAnimating()
                 self.isRefreshing = false
                 indicator.color = self.tintColor
+                indicator.layer.shadowRadius = 0
+                if self.usingVisualEffect {
+                    indicator.effectView?.isHidden = true
+                }
             }
         } else if style == .navigationBar, let headerIndicator = viewController?.navigationItem.titleView as? ActivityIndicator {
             UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.2, options: UIViewAnimationOptions(), animations: {
@@ -201,6 +249,8 @@ public class Refresher: UIView {
                 self.isRefreshing = false
             }
         }
-        self.tapticFeedback.selectionChanged()
+        if #available(iOS 10, *) {
+            tapticFeedback.selectionChanged()
+        }
     }
 }
