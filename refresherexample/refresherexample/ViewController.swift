@@ -27,7 +27,6 @@ extension UINavigationController {
     }
 }
 class ViewController: UITableViewController {
-    var refresh:Refresher?
     var searchController = UISearchController(searchResultsController: nil)
     var items = [People]()
     override var preferredStatusBarStyle: UIStatusBarStyle {
@@ -38,15 +37,9 @@ class ViewController: UITableViewController {
         self.navigationItem.searchController = searchController
         self.navigationItem.searchController?.searchBar.searchBarStyle = .minimal
         self.navigationItem.searchController?.searchBar.tintColor = UIColor.white
-        self.refresh = Refresher(scrollView: self.tableView, didPullDown: {
+        self.tableView.addRefresherWithAction {
             self.download()
-        })
-        self.refresh?.usingVisualEffect = false
-        /*self.refresh?.color = self.navigationController?.navigationBar.barTintColor ?? UIColor.blue
-        
-        self.refresh = Refresher(scrollView: tableView, viewController: self, style: .navigationBar, didPullDown: {
-            self.download()
-        })*/
+        }
     }
     
     override func numberOfSections(in tableView: UITableView) -> Int {
@@ -63,7 +56,7 @@ class ViewController: UITableViewController {
     }
     func download() {
         Timer.scheduledTimer(withTimeInterval: 2, repeats: false) { (timer) in
-            self.refresh?.endRefreshing()
+            self.tableView.endRefreshing()
         }
         /*return
         guard let url = URL(string:"http://192.168.1.103:8080") else {
@@ -97,12 +90,8 @@ class ViewController: UITableViewController {
     func download(url:URL, indexPath:IndexPath) {
         
     }
-    @IBAction func refresh2(sender:Any?) {
-        download()
-        //self.refresh?.startRefreshing(force: true)
-    }
     @IBAction func refresh(sender:Any?) {
-        self.refresh?.startRefreshing(force: true)
+        self.tableView.beginRefreshing()
     }
 }
 

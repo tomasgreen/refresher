@@ -8,6 +8,34 @@
 
 import UIKit
 
+fileprivate var refresherTag = -124951235
+
+public extension UITableView {
+    public func addRefresherWithAction(refreshStarted:(() -> Void)? = nil) {
+        _ = Refresher(scrollView: self, refreshStarted: refreshStarted)
+    }
+    public func beginRefreshing(force:Bool = true) {
+        guard let refresher = self.viewWithTag(refresherTag) as? Refresher else {
+            return
+        }
+        refresher.beginRefreshing(force: force)
+    }
+    public func endRefreshing() {
+        guard let refresher = self.viewWithTag(refresherTag) as? Refresher else {
+            return
+        }
+        refresher.endRefreshing()
+    }
+    public var refresher:Refresher? {
+        return self.viewWithTag(refresherTag) as? Refresher
+    }
+    public var isRefresing:Bool {
+        guard let refresher = self.viewWithTag(refresherTag) as? Refresher else {
+            return false
+        }
+        return refresher.isRefreshing
+    }
+}
 
 @available(iOS 10.0, *) fileprivate var tapticFeedback = UISelectionFeedbackGenerator()
 
@@ -29,7 +57,7 @@ public class Refresher: UIView {
     public var height:CGFloat = 70
     public var indicatorSize: CGFloat = 38
     public var indicatorOffset = CGPoint(x: 10, y: 10)
-    public var didPullDown: (() -> Void)?
+    public var refreshStarted: (() -> Void)?
     public var refreshLabel:UILabel?
     public var pullToRefreshText = "Pull to refresh"
     public var releaseToRefreshText = "Release to refresh"
@@ -56,16 +84,16 @@ public class Refresher: UIView {
             return indicatorOffset.y + (viewController?.navigationController?.navigationBar.frame.size.height ?? indicatorSize + indicatorOffset.y)
         }
     }
-    public convenience init(scrollView:UIScrollView, didPullDown:(() -> Void)? = nil) {
+    public convenience init(scrollView:UIScrollView, refreshStarted:(() -> Void)? = nil) {
         self.init(frame: CGRect())
-        self.didPullDown = didPullDown
+        self.refreshStarted = refreshStarted
         self.scrollView = scrollView
         activityIndicatorActiveBackgroundColor = .clear
         setup()
     }
-    public convenience init(scrollView:UIScrollView, viewController:UIViewController? = nil,style:Style = .scrollView, didPullDown:(() -> Void)? = nil) {
+    public convenience init(scrollView:UIScrollView, viewController:UIViewController? = nil,style:Style = .scrollView, refreshStarted:(() -> Void)? = nil) {
         self.init(frame: CGRect())
-        self.didPullDown = didPullDown
+        self.refreshStarted = refreshStarted
         self.style = style
         
         if let color = viewController?.navigationController?.navigationBar.barTintColor {
@@ -79,7 +107,7 @@ public class Refresher: UIView {
         guard let scrollView = scrollView else {
             return
         }
-        
+        self.tag = refresherTag
         self.frame = CGRect(x: 0, y: self.height * -1, width: scrollView.frame.size.width, height: self.height)
         let refreshLabel = UILabel(frame: CGRect(x: 0, y: 40, width: bounds.width, height: bounds.height - 40))
         refreshLabel.textAlignment = .center
@@ -165,7 +193,7 @@ public class Refresher: UIView {
             }
             capReached = true
             if scrollView?.isDragging == false && isRefreshing == false {
-                startRefreshing()
+                beginRefreshing()
             }
             if refreshLabel?.text != releaseToRefreshText {
                 refreshLabel?.text = releaseToRefreshText
@@ -177,7 +205,7 @@ public class Refresher: UIView {
             }
         }
     }
-    public func startRefreshing(force:Bool = false) {
+    public func beginRefreshing(force:Bool = false) {
         if isRefreshing {
             return
         }
@@ -201,7 +229,7 @@ public class Refresher: UIView {
                 indicator.layer.shadowRadius = 5
                 indicator.frame.origin.x = scrollView.frame.size.width - self.indicatorSize - self.indicatorOffset.x - self.rightOffset
             }) { (done) in
-                self.didPullDown?()
+                self.refreshStarted?()
             }
             indicator.startAnimating()
         } else if style == .navigationBar {
@@ -214,7 +242,7 @@ public class Refresher: UIView {
                 self.refreshLabel?.alpha = 0
                 headerIndicator.frame.origin.y = 0
             }) { (done) in
-                self.didPullDown?()
+                self.refreshStarted?()
             }
             headerIndicator.startAnimating()
         }
