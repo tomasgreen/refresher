@@ -128,7 +128,7 @@ public class Refresher: UIView {
         
         scrollView.addSubview(indicator)
         scrollView.addSubview(self)
-        scrollView.sendSubview(toBack: self)
+        scrollView.sendSubviewToBack(self)
         self.addSubview(refreshLabel)
 
         self.color = scrollView.tintColor
@@ -224,7 +224,7 @@ public class Refresher: UIView {
             }
             indicator.backgroundColor = activityIndicatorActiveBackgroundColor
             indicator.color = UIColor.white
-            UIView.animate(withDuration: 0.3, delay: 0.2, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.2, options: UIViewAnimationOptions(), animations: {
+            UIView.animate(withDuration: 0.3, delay: 0.2, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.2, options: UIView.AnimationOptions(), animations: {
                 self.refreshLabel?.alpha = 0
                 indicator.layer.shadowRadius = 5
                 indicator.frame.origin.x = scrollView.frame.size.width - self.indicatorSize - self.indicatorOffset.x - self.rightOffset
@@ -238,7 +238,7 @@ public class Refresher: UIView {
             headerIndicator.tintColor = self.viewController?.navigationController?.navigationBar.tintColor
             self.titleView = self.viewController?.navigationItem.titleView
             viewController?.navigationItem.titleView = headerIndicator
-            UIView.animate(withDuration: 0.3, delay: 0.2, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.2, options: UIViewAnimationOptions(), animations: {
+            UIView.animate(withDuration: 0.3, delay: 0.2, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.2, options: UIView.AnimationOptions(), animations: {
                 self.refreshLabel?.alpha = 0
                 headerIndicator.frame.origin.y = 0
             }) { (done) in
@@ -256,7 +256,7 @@ public class Refresher: UIView {
             return
         }
         if style == .scrollView, let indicator = activityIndicator {
-            UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.2, options: UIViewAnimationOptions(), animations: {
+            UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.2, options: UIView.AnimationOptions(), animations: {
                 indicator.frame.origin.x = scrollView.frame.size.width
             }) { (done) in
                 indicator.backgroundColor = UIColor.clear
@@ -269,7 +269,7 @@ public class Refresher: UIView {
                 }
             }
         } else if style == .navigationBar, let headerIndicator = viewController?.navigationItem.titleView as? ActivityIndicator {
-            UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.2, options: UIViewAnimationOptions(), animations: {
+            UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.2, options: UIView.AnimationOptions(), animations: {
                 headerIndicator.frame.origin.y = self.navigationItemHeight * -1
             }) { (done) in
                 self.viewController?.navigationItem.titleView = self.titleView

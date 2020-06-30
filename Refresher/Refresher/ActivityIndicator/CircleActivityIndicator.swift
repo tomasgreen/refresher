@@ -104,7 +104,7 @@ fileprivate func angleFor(index:Int,fragments:Int=5) -> CGFloat {
             } else {
                 rotationAnimation.toValue = CGFloat(radians) + to * -1
             }
-            rotationAnimation.timingFunction = CAMediaTimingFunction(name: kCAMediaTimingFunctionLinear)
+            rotationAnimation.timingFunction = CAMediaTimingFunction(name: CAMediaTimingFunctionName.linear)
             rotationAnimation.repeatCount = Float.infinity
             fragment.layer.add(rotationAnimation, forKey: rotationAnimation.keyPath)
         }

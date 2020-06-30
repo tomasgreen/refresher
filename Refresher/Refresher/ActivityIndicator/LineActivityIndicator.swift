@@ -142,7 +142,7 @@ fileprivate func angleFor(index:Int) -> CGFloat {
             rotationAnimation.fromValue = from
             rotationAnimation.toValue = from + to
             rotationAnimation.duration = rotationDuration * 1.8
-            rotationAnimation.timingFunction = CAMediaTimingFunction(name: kCAMediaTimingFunctionEaseInEaseOut)
+            rotationAnimation.timingFunction = CAMediaTimingFunction(name: CAMediaTimingFunctionName.easeInEaseOut)
             rotationAnimation.repeatCount = Float.infinity
             // without isRemovedOnCompletion = false the animation will be removed when the app goes to the background
             rotationAnimation.isRemovedOnCompletion = false
@@ -151,7 +151,7 @@ fileprivate func angleFor(index:Int) -> CGFloat {
         }
         
         self.transform = CGAffineTransform(scaleX: 0.5, y: 0.5)
-        UIView.animate(withDuration: 0.2, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.2, options: UIViewAnimationOptions(), animations: {
+        UIView.animate(withDuration: 0.2, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.2, options: UIView.AnimationOptions(), animations: {
             self.transform = .identity
         })
         self.isLoading = true
